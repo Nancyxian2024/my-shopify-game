@@ -4,6 +4,10 @@ on:
   push:
     branches: [ main ]
 
+# 明确告知 GitHub 这个脚本有权写入仓库内容
+permissions:
+  contents: write
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -15,4 +19,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./ # 假设你的 index.html 就在根目录
+          publish_dir: ./ 
+          force_orphan: true # 强制创建部署分支，解决 403 的常见冲突
