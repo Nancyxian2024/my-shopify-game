@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Crystal Year · 每日仪式</title>
+<style>
+  body { margin: 0; overflow: hidden; background-color: #05070a; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; touch-action: none; }
+  canvas { display: block; }
+  
+  #ui-layer {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+  }
+
+  #welcome-screen {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    z-index: 50;
+    transition: opacity 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: auto; 
+    background: radial-gradient(circle at center, #1a202c 0%, #05070a 100%);
+  }
+
+  .brand-title {
+    font-size: 56px; color: #fff; text-transform: uppercase; letter-spacing: 16px;
+    font-weight: 100; 
+    text-shadow: 0 0 50px rgba(255, 255, 255, 0.6), 0 0 100px rgba(100, 181, 246, 0.4);
+    margin-bottom: 80px; opacity: 0; 
+    animation: brandFadeIn 2.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.5s;
+    font-family: "Didot", "Times New Roman", serif;
+    text-align: center;
+    position: relative;
+  }
+  .brand-title::after {
+      content: ''; position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+      width: 60px; height: 1px; background: rgba(255,255,255,0.5);
+      box-shadow: 0 0 10px white;
+  }
+
+  .auth-container { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }
+  
+  .auth-input {
+    background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.3);
+    color: white; font-family: "Didot", serif; font-size: 18px; text-align: center; letter-spacing: 4px;
+    width: 200px; padding: 10px; outline: none; transition: all 0.5s; text-transform: uppercase;
+    opacity: 0; animation: fadeInInput 2s forwards 1.2s;
+  }
+  .auth-input:focus { border-bottom-color: rgba(255,255,255,0.9); width: 260px; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+  .auth-input::placeholder { color: rgba(255,255,255,0.2); font-size: 12px; letter-spacing: 2px; font-family: sans-serif; }
+  
+  .start-btn {
+    padding: 18px 60px; background: transparent; color: #fff; font-size: 12px; letter-spacing: 8px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 0px; transition: all 0.4s ease-out;
+    opacity: 0; animation: btnFadeIn 2s forwards 1.8s; text-transform: uppercase; position: relative; overflow: hidden;
+  }
+  .start-btn:hover { border-color: rgba(255,255,255,0.6); box-shadow: 0 0 40px rgba(255,255,255,0.1); letter-spacing: 10px; }
+
+  #top-bar {
+    position: absolute; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100; pointer-events: none;
+  }
+  #vip-status {
+    pointer-events: auto; font-size: 11px; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; background: rgba(0,0,0,0.3); padding: 5px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.3s;
+  }
+  #vip-status:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); }
+  .vip-icon { color: #FFD700; font-weight: bold; }
+  
+  #music-btn { width: 30px; height: 30px; cursor: pointer; opacity: 0.7; transition: opacity 0.3s; pointer-events: auto; }
+  #music-btn:hover { opacity: 1; }
+  #music-btn svg { width: 100%; height: 100%; fill: white; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
+
+  .title {
+    position: absolute; top: 12%; width: 100%; text-align: center;
+    color: rgba(255,255,255,0.95); text-shadow: 0 0 30px rgba(255,255,255,0.3);
+    transition: opacity 1s; z-index: 10; opacity: 0; pointer-events: none; mix-blend-mode: screen;
+  }
+  .title h1 { font-size: 32px; margin: 0; font-weight: 200; letter-spacing: 8px; font-family: sans-serif; }
+  .title p { font-size: 12px; color: rgba(255,255,255,0.5); margin-top: 12px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase;}
+  
+  .guidance-mode .title h1 { opacity: 0.8; font-size: 20px; letter-spacing: 4px; transition: all 1s; }
+  .guidance-mode .title p { font-size: 16px; color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.8); }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #E040FB 0%, #FF4081 50%, #FFD700 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    font-weight: 500; display: inline-block; filter: drop-shadow(0 0 10px rgba(224, 64, 251, 0.3));
+    animation: gradientShift 5s infinite linear; background-size: 200% auto;
+  }
+  .typing-cursor::after { content: '|'; display: inline-block; margin-left: 2px; color: #FFD700; animation: blink 1s infinite; }
+
+  #instruction {
+    position: absolute; bottom: 12%; width: 100%; text-align: center;
+    color: rgba(255,255,255,0.8); font-size: 14px; opacity: 0; transition: opacity 0.5s;
+    text-shadow: 0 0 15px rgba(255,255,255,0.5); letter-spacing: 4px; z-index: 10; font-weight: 300; text-transform: uppercase;
+  }
+
+  #journal-card {
+    display: none; 
+    background: rgba(10, 15, 25, 0.8); 
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%); 
+    padding: 30px; 
+    border-radius: 2px; 
+    text-align: center;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(255,255,255,0.08);
+    width: 380px; 
+    max-width: 90%; 
+    max-height: 85vh; 
+    overflow-y: auto;
+    scrollbar-width: none; 
+    -ms-overflow-style: none;
+    pointer-events: auto; 
+    animation: slideUp 1s cubic-bezier(0.19, 1, 0.22, 1);
+    z-index: 20; 
+    color: white; 
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  #journal-card::-webkit-scrollbar { display: none; }
+
+  #journal-card h2 { color: #fff; margin: 0 0 10px 0; font-size: 26px; font-weight: 200; letter-spacing: 2px; }
+  #journal-card .date { font-size: 10px; color: rgba(255,255,255,0.4); margin-bottom: 20px; display: block; letter-spacing: 2px; text-transform: uppercase; }
+  #journal-card .quote { font-size: 16px; color: rgba(255,255,255,0.9); line-height: 1.8; font-style: italic; margin-bottom: 30px; font-family: "Songti SC", serif; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
+  #journal-card .mood-shift { font-size: 12px; color: rgba(255,255,255,0.7); margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 20px; }
+  
+  .log-section { margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; text-align: left; }
+  .log-title { font-size: 9px; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px; }
+  #log-list { max-height: 120px; overflow-y: auto; scrollbar-width: none; }
+  #log-list::-webkit-scrollbar { display: none; } 
+  .log-entry { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.02); font-size: 11px; color: rgba(255,255,255,0.7); animation: fadeIn 0.8s ease-out; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: rgba(255,255,255,0.25); font-size: 10px; margin-right: 15px; font-family: monospace; }
+  .log-crystal { color: #b3e5fc; font-weight: 400; text-shadow: 0 0 15px rgba(179,229,252,0.2); }
+
+  .button-group { display: flex; gap: 15px; margin-top: 30px; width: 100%; padding-bottom: 10px; }
+  #journal-card button {
+    flex: 1; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.9); padding: 15px 0;
+    font-size: 10px; cursor: pointer; transition: all 0.5s; letter-spacing: 3px; text-transform: uppercase; font-weight: 400; border-radius: 2px;
+  }
+  #journal-card button:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); color: #fff; box-shadow: 0 0 30px rgba(255,255,255,0.05); }
+  #journal-card button.secondary { background: transparent; border: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); }
+  #journal-card button.secondary:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.8); }
+
+  .modal-overlay {
+    display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(15px); z-index: 60; flex-direction: column; justify-content: center; align-items: center; animation: fadeIn 0.5s; pointer-events: auto;
+  }
+  .modal-content {
+    background: rgba(20, 30, 48, 0.95); border: 1px solid rgba(255,255,255,0.15); padding: 40px; border-radius: 4px;
+    text-align: center; width: 320px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .modal-title { color: #fff; font-size: 18px; letter-spacing: 2px; margin-bottom: 15px; font-weight: 300; }
+  .modal-desc { color: rgba(255,255,255,0.6); font-size: 12px; margin-bottom: 25px; line-height: 1.6; }
+  #custom-mood-input {
+    background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,0.3); color: white;
+    font-size: 16px; width: 100%; padding: 12px; margin-bottom: 35px; text-align: center; outline: none; letter-spacing: 2px; font-family: "Didot", serif;
+  }
+  #custom-mood-input:focus { border-bottom-color: #fff; }
+  .modal-btn {
+    padding: 14px 40px; background: white; color: black; border: none; font-size: 12px; letter-spacing: 3px; cursor: pointer; text-transform: uppercase; transition: all 0.3s; margin: 5px;
+  }
+  .modal-btn:hover { background: #e0e0e0; transform: scale(1.02); }
+  .modal-btn.secondary { background: transparent; color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.3); }
+  .modal-btn.secondary:hover { background: rgba(255,255,255,0.1); color: white; }
+
+  #harmonize-btn {
+    display: none; position: absolute; bottom: 15%; padding: 12px 35px;
+    background: linear-gradient(90deg, rgba(255,215,0,0.1), rgba(255,255,255,0.2), rgba(255,215,0,0.1));
+    border: 1px solid rgba(255,255,255,0.4); color: #fff; font-size: 12px; letter-spacing: 3px;
+    text-transform: uppercase; cursor: pointer; border-radius: 30px; pointer-events: auto;
+    transition: all 0.5s; backdrop-filter: blur(5px); box-shadow: 0 0 20px rgba(255,215,0,0.1);
+  }
+  #harmonize-btn:hover {
+    background: linear-gradient(90deg, rgba(255,215,0,0.3), rgba(255,255,255,0.4), rgba(255,215,0,0.3));
+    box-shadow: 0 0 40px rgba(255,215,0,0.4); transform: scale(1.05); border-color: #fff;
+  }
+  
+  .chakra-container { position: relative; width: 160px; height: 300px; margin: 20px auto; }
+  .human-silhouette { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 100%; height: 100%; fill: none; stroke: rgba(255,255,255,0.15); stroke-width: 1.5; }
+  .chakra-point { position: absolute; left: 50%; transform: translate(-50%, 50%); width: 8px; height: 8px; border-radius: 50%; background: #333; box-shadow: 0 0 5px rgba(255,255,255,0.1); transition: all 1s; }
+  .chakra-ring { position: absolute; left: 50%; transform: translate(-50%, 50%); border-radius: 50%; border: 1px dashed rgba(255,255,255,0.3); animation: spin-ccw 10s linear infinite; pointer-events: none; opacity: 0; transition: opacity 0.5s; }
+  .chakra-label { position: absolute; left: 50%; transform: translateX(25px); font-size: 9px; color: rgba(255,255,255,0.8); font-family: monospace; white-space: nowrap; text-shadow: 0 0 5px black; opacity: 0; transition: opacity 0.5s; display: flex; align-items: center; }
+  .chakra-label::before { content: ''; display: block; width: 15px; height: 1px; background: rgba(255,255,255,0.3); margin-right: 5px; }
+
+  @keyframes brandFadeIn { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes btnFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes fadeInInput { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pulseText { 0% { opacity: 0.7; } 50% { opacity: 1; text-shadow: 0 0 30px rgba(255,255,255,0.5); } 100% { opacity: 0.7; } }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+  @keyframes spin-ccw { from { transform: translate(-50%, 50%) rotate(360deg); } to { transform: translate(-50%, 50%) rotate(0deg); } }
+</style>
+</head>
+<body>
+
+<audio id="bgm" loop crossOrigin="anonymous" preload="auto">
+    <source src="https://cdn.pixabay.com/audio/2022/11/02/audio_8b868e4dcd.mp3" type="audio/mpeg">
+</audio>
+
+<div id="ui-layer">
+  <div id="top-bar">
+      <div id="vip-status" onclick="window.openVipModal()">
+        <span class="vip-icon">❖</span> <span id="limit-text">Loading...</span>
+      </div>
+      <div id="music-btn" onclick="window.toggleMusic()">
+        <svg id="icon-play" style="display:none;" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="icon-mute" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+      </div>
+  </div>
+
+  <div id="welcome-screen">
+    <div class="brand-title">Crystal Year</div>
+    <div class="auth-container">
+        <input type="text" id="username" class="auth-input" placeholder="INSCRIPT YOUR NAME" maxlength="12" autocomplete="off">
+        <button id="start-btn" class="start-btn" onclick="window.handleStartGame()">Enter Void</button>
+    </div>
+  </div>
+
+  <div class="title" id="main-title">
+    <h1 id="title-text">COSMIC RITUAL</h1>
+    <p id="subtitle-text">Connect with your inner universe</p>
+  </div>
+  <div id="instruction"></div>
+  
+  <button id="harmonize-btn" onclick="window.startHarmonizeAll()">HARMONIZE ALL</button>
+  
+  <div id="journal-card">
+    <span class="date" id="date-text"></span>
+    <h2 id="card-title">Ritual Complete</h2>
+    <div class="mood-shift" id="mood-shift-text"></div>
+    <p class="quote" id="card-quote"></p>
+    
+    <!-- 脉轮展示区域 -->
+    <div class="chakra-container" id="chakra-body">
+        <svg class="human-silhouette" viewBox="0 0 100 200" preserveAspectRatio="xMidYMid meet">
+            <path d="M50,10 C60,10 65,18 65,28 C65,35 60,40 55,42 L55,45 C75,45 85,55 85,80 L85,110 L75,110 L75,80 C75,70 70,60 65,60 L65,120 C65,130 70,140 70,180 L60,180 C60,150 55,140 55,120 L55,120 L45,120 L45,120 C45,140 40,150 40,180 L30,180 C30,140 35,130 35,120 L35,60 C30,60 25,70 25,80 L25,110 L15,110 L15,80 C15,55 25,45 45,45 L45,42 C40,40 35,35 35,28 C35,18 40,10 50,10 Z" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5"/>
+        </svg>
+    </div>
+    
+    <div class="log-section">
+        <div class="log-title">Today's Resonance Log</div>
+        <div id="log-list"></div>
+    </div>
+    <div class="button-group">
+        <button class="secondary" onclick="window.exitToHome()">Visit Store</button>
+        <button onclick="window.resetGame()">Continue</button>
+    </div>
+  </div>
+
+  <div id="custom-mood-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-title">Describe Your State</div>
+        <input type="text" id="custom-mood-input" placeholder="e.g., Overwhelmed, Dreaming..." maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter') window.submitCustomMood()">
+        <button class="modal-btn" onclick="window.submitCustomMood()">Inscript</button>
+        <button class="modal-btn secondary" onclick="window.closeModal('custom-mood-modal')">Cancel</button>
+    </div>
+  </div>
+
+  <div id="vip-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-title" id="vip-modal-title">Daily Limit Reached</div>
+        <div class="modal-desc" id="vip-modal-desc">
+            You have used 5/5 free rituals today.<br>
+            Join Crystal Year VIP to unlock unlimited energy resonance.
+        </div>
+        <button class="modal-btn" onclick="window.unlockVip()">Join VIP (Free Demo)</button>
+        <button class="modal-btn secondary" onclick="window.closeModal('vip-modal')">Maybe Later</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<script>
+// --- 0. 变量定义 ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const uiTitle = document.getElementById('main-title');
+const titleText = document.getElementById('title-text');
+const subtitleText = document.getElementById('subtitle-text');
+const uiInstruction = document.getElementById('instruction');
+const journalCard = document.getElementById('journal-card');
+const welcomeScreen = document.getElementById('welcome-screen');
+const usernameInput = document.getElementById('username');
+const startBtn = document.getElementById('start-btn');
+const customModal = document.getElementById('custom-mood-modal');
+const customInput = document.getElementById('custom-mood-input');
+const vipModal = document.getElementById('vip-modal');
+const vipStatusText = document.getElementById('limit-text');
+const harmonizeBtn = document.getElementById('harmonize-btn');
+const bgm = document.getElementById('bgm');
+const iconPlay = document.getElementById('icon-play');
+const iconMute = document.getElementById('icon-mute');
+const chakraBody = document.getElementById('chakra-body');
+
+const STATE = { WELCOME: -2, BREATHE: -1.5, INTRO: -1, GUIDANCE: -0.5, SELECT: 0, RITUAL: 1, COMPLETE: 2 };
+let currentState = STATE.WELCOME;
+const DAILY_LIMIT = 5;
+const PERSPECTIVE = 800;
+
+let width, height;
+let particles = []; 
+let activeCrystals = [];
+let ribbons = [];
+let moodBubbles = [];
+let stars = []; 
+let nebulas = []; 
+let spaceParticles = []; 
+let lightRays = [];
+let energyParticles = []; 
+let shockwaves = [];      
+let frame = 0;
+let isCharging = false; 
+let purifiedMoods = [];
+let mouseX = 0;
+let mouseY = 0;
+let currentUserName = "";
+let currentMoodType = "negative"; 
+let selectedCrystalIndex = -1;
+let ritualProgress = 0; 
+let shakeIntensity = 0;
+let breatheStep = 0; 
+let typingTimeout = null; 
+let isHarmonizingAll = false; 
+let dailyUsage = 0;
+let isVip = false;
+let audioCtx;
+let analyser;
+let dataArray;
+let isAudioInited = false;
+let audioLevel = 0;
+
+let chakraLevels = { Root: 0, Sacral: 0, SolarPlexus: 0, Heart: 0, Throat: 0, ThirdEye: 0, Crown: 0 };
+const CHAKRA_CONFIG = {
+    Root: { top: '85%', color: '#FF5252' }, Sacral: { top: '75%', color: '#FFAB40' }, SolarPlexus: { top: '63%', color: '#FFD740' },
+    Heart: { top: '48%', color: '#69F0AE' }, Throat: { top: '35%', color: '#40C4FF' }, ThirdEye: { top: '22%', color: '#536DFE' }, Crown: { top: '10%', color: '#E040FB' }
+};
+
+const crystals = [
+  {name:"Amethyst", chakra:"ThirdEye", color:"#9B59B6", glow:"#E040FB", emotion:"Calm", targetHz: 963, quote:"Peace comes from within.", knowledge:"紫水晶：灵魂的镇静剂\n提升直觉，平衡情绪", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Amethyst_crystals.jpg/640px-Amethyst_crystals.jpg", x:0, y:0},
+  {name:"White Phantom", chakra:"Crown", color:"#F5F5F5", glow:"#FFFFFF", emotion:"Clarity", targetHz: 741, quote:"Clear your mind, see the truth.", knowledge:"白幽灵：净化磁场\n清理负能量，提升专注", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Quartz_Br%C3%A9sil.jpg/640px-Quartz_Br%C3%A9sil.jpg", x:0, y:0},
+  {name:"Smoky Quartz", chakra:"Root", color:"#5D4037", glow:"#8D6E63", emotion:"Grounding", targetHz: 396, quote:"Stay rooted, stay strong.", knowledge:"茶晶：极其稳固的能量\n吸收负面情绪，扎根大地", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Smoky_Quartz_-_Alps.jpg/480px-Smoky_Quartz_-_Alps.jpg", x:0, y:0},
+  {name:"Clear Quartz", chakra:"Crown", color:"#E0F7FA", glow:"#B2EBF2", emotion:"Healing", targetHz: 528, quote:"Pure energy flows through you.", knowledge:"白水晶：能量之王\n放大正能量，净化身心", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/Quartz_Br%C3%A9sil.jpg/640px-Quartz_Br%C3%A9sil.jpg", x:0, y:0},
+  {name:"Rose Quartz", chakra:"Heart", color:"#F8BBD0", glow:"#F48FB1", emotion:"Love", targetHz: 639, quote:"Love is the highest frequency.", knowledge:"粉水晶：无条件的爱\n疗愈心轮，带来温暖", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Rose_quartz_-_lucy_20040523.jpg/467px-Rose_quartz_-_lucy_20040523.jpg", x:0, y:0},
+  {name:"Red Rutilated", chakra:"Sacral", color:"#E57373", glow:"#FFCDD2", emotion:"Warmth", targetHz: 417, quote:"Ignite your inner fire.", knowledge:"红发晶：增强活力\n激发热情与个人魅力", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Rutile-Quartz-245367.jpg/432px-Rutile-Quartz-245367.jpg", x:0, y:0},
+  {name:"Skeleton Quartz", chakra:"Crown", color:"#B0BEC5", glow:"#CFD8DC", emotion:"Structure", targetHz: 852, quote:"Transform and evolve.", knowledge:"骨干水晶：转化的能量\n清理深层阻塞，促进蜕变", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/Elestial_Quartz.jpg/640px-Elestial_Quartz.jpg", x:0, y:0},
+  {name:"Titanium Quartz", chakra:"SolarPlexus", color:"#3949AB", glow:"#5C6BC0", emotion:"Strength", targetHz: 741, quote:"Shine with resilience.", knowledge:"钛晶：最强能量\n增强自信与决断力", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Titanium_quartz.jpg/640px-Titanium_quartz.jpg", x:0, y:0},
+  {name:"Rutilated Quartz", chakra:"SolarPlexus", color:"#FFCA28", glow:"#FFD54F", emotion:"Focus", targetHz: 528, quote:"Laser sharp intention.", knowledge:"金发晶：增强意念\n招财聚气，提升专注", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Rutile-Quartz-245367.jpg/432px-Rutile-Quartz-245367.jpg", x:0, y:0},
+  {name:"Citrine", chakra:"SolarPlexus", color:"#FBC02D", glow:"#FFF176", emotion:"Prosperity", targetHz: 417, quote:"Abundance flows to you.", knowledge:"黄水晶：财富之石\n带来丰盛与快乐", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Citrine_2.jpg/640px-Citrine_2.jpg", x:0, y:0},
+  {name:"Green Phantom", chakra:"Heart", color:"#388E3C", glow:"#66BB6A", emotion:"Growth", targetHz: 639, quote:"Grow and flourish.", knowledge:"绿幽灵：事业之光\n吸引正财，促进成长", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Chlorite_in_Quartz.jpg/480px-Chlorite_in_Quartz.jpg", x:0, y:0},
+  {name:"Ametrine", chakra:"ThirdEye", color:"#7B1FA2", glow:"#AB47BC", emotion:"Balance", targetHz: 963, quote:"Harmony in duality.", knowledge:"紫黄晶：调和矛盾\n平衡理智与情感", imgUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Ametrine_-_Bolivia.jpg/640px-Ametrine_-_Bolivia.jpg", x:0, y:0}
+];
+
+const crystalImages = {};
+crystals.forEach(c => { const img = new Image(); img.src = c.imgUrl; img.crossOrigin = "Anonymous"; crystalImages[c.name] = img; });
+
+const moodWords = [
+  { text: "Anxiety", type: "negative", color: "#A569BD", matches: ["Amethyst", "White Phantom"] },
+  { text: "Stress", type: "negative", color: "#546E7A", matches: ["Smoky Quartz", "Clear Quartz"] },
+  { text: "Loneliness", type: "negative", color: "#85C1E9", matches: ["Rose Quartz", "Red Rutilated"] },
+  { text: "Fatigue", type: "negative", color: "#909497", matches: ["Clear Quartz", "Skeleton Quartz"] },
+  { text: "Insecurity", type: "negative", color: "#D98880", matches: ["Titanium Quartz"] },
+  { text: "Confusion", type: "negative", color: "#5DADE2", matches: ["Rutilated Quartz", "White Phantom"] },
+  { text: "Stagnation", type: "negative", color: "#566573", matches: ["Citrine", "Green Phantom"] },
+  { text: "Unstable", type: "negative", color: "#8D6E63", matches: ["Smoky Quartz"] },
+  { text: "Fear", type: "negative", color: "#C39BD3", matches: ["Skeleton Quartz", "Ametrine"] },
+  { text: "OTHERS", type: "neutral", color: "#FFFFFF", matches: [] } 
+];
+
+const energySynergies = [
+    { name: "Soul Cleanse Trinity", crystals: ["Clear Quartz", "Amethyst", "Smoky Quartz"], desc: "Purify, Calm, and Ground." },
+    { name: "Heart Awakening Set", crystals: ["Rose Quartz", "Ametrine", "Red Rutilated"], desc: "Love, Balance, and Passion." },
+    { name: "Master Manifestor", crystals: ["Citrine", "Green Phantom", "Titanium Quartz"], desc: "Wealth, Growth, and Power." },
+    { name: "Wisdom & Clarity", crystals: ["White Phantom", "Rutilated Quartz", "Skeleton Quartz"], desc: "Insight, Focus, and Vision." }
+];
+
+// --- 1. 类定义 (Class Definitions) ---
+
+class EnergyParticle {
+    constructor(targetX, targetY, color) {
+        this.reset(targetX, targetY, color);
+        this.angle = Math.random() * Math.PI * 2;
+        this.radius = Math.random() * 400 + 100;
+    }
+    reset(targetX, targetY, color) {
+        this.targetX = targetX;
+        this.targetY = targetY;
+        this.color = color;
+        this.angle = Math.random() * Math.PI * 2;
+        this.radius = Math.random() * 500 + 200;
+        this.speed = Math.random() * 0.05 + 0.02;
+        this.z = (Math.random() - 0.5) * 200;
+        this.size = Math.random() * 2 + 1;
+        this.history = [];
+    }
+    update(intensity) {
+        const boost = 1 + audioLevel * 2;
+        this.angle += this.speed * (1 + intensity/20) * boost;
+        this.radius -= (3 + intensity/2) * boost;
+        const x3d = Math.cos(this.angle) * this.radius;
+        const y3d = Math.sin(this.angle) * this.radius * 0.5;
+        const p = project3D(x3d, y3d + this.z, 0, this.targetX, this.targetY);
+        this.x = p.x;
+        this.y = p.y;
+        this.history.push({x: this.x, y: this.y, alpha: 1.0});
+        if(this.history.length > 8 + intensity/5) this.history.shift();
+        if (this.radius < 10) return true;
+        return false;
+    }
+    draw(ctx) {
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = this.size;
+        ctx.lineCap = "round";
+        ctx.globalCompositeOperation = "lighter";
+        if(this.history.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(this.history[0].x, this.history[0].y);
+            for(let i=1; i<this.history.length; i++) {
+                const p = this.history[i];
+                ctx.globalAlpha = i / this.history.length;
+                ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+    }
+}
+
+class SpaceParticle {
+    constructor(color) { this.reset(true); this.color = color; }
+    reset(initial = false) {
+        this.x = (Math.random() - 0.5) * width * 4;
+        this.y = (Math.random() - 0.5) * height * 4;
+        this.z = initial ? Math.random() * 2000 : 2000;
+        this.speed = Math.random() * 5 + 2;
+        this.size = Math.random() * 2;
+        this.color = "rgba(255,255,255," + (Math.random()*0.5+0.2) + ")";
+    }
+    update(speedMultiplier) {
+        const boost = 1 + audioLevel * 3;
+        this.z -= this.speed * speedMultiplier * boost;
+        if (this.z < -PERSPECTIVE + 50) this.reset();
+    }
+    draw(ctx, cx, cy) {
+        const p = project3D(this.x, this.y, this.z, cx, cy);
+        if (p.scale > 0) {
+            const pulse = 1 + audioLevel * 1.5;
+            ctx.globalAlpha = Math.min(1, (2000 - this.z) / 1000) * p.scale;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, this.size * p.scale * pulse, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+}
+
+class GalaxyStream {
+    constructor(color, index, total) {
+        this.color = color;
+        this.baseAngle = (Math.PI * 2 * index) / total;
+        this.points = [];
+        this.maxParticles = 60;
+        this.spiralA = 40;
+        this.spiralB = 0.18;
+        for(let i=0; i<this.maxParticles; i++) {
+            this.points.push({
+                angleOffset: i * 0.2,
+                distScatter: (Math.random() - 0.5) * 60,
+                speed: Math.random() * 0.002 + 0.001,
+                size: Math.random() * 2.5 + 0.5,
+                alpha: Math.random() * 0.6 + 0.1,
+                pulseFreq: Math.random() * 0.1
+            });
+        }
+    }
+    update(cx, cy, intensity) {
+        const mouseSpin = (mouseX - width/2) * 0.000005;
+        const boost = 1 + audioLevel * 1;
+        this.baseAngle += (0.001 + mouseSpin) * boost;
+    }
+    draw(ctx, cx, cy, intensity) {
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        ctx.fillStyle = this.color;
+        const tiltX = (mouseY - height/2) * 0.0005;
+        const tiltY = (mouseX - width/2) * 0.0005;
+        this.points.forEach(p => {
+            p.angleOffset += p.speed;
+            const theta = p.angleOffset + this.baseAngle;
+            const r = this.spiralA * Math.exp(this.spiralB * p.angleOffset);
+            const wave = Math.sin(theta * 5 + frame*0.1) * (10 + audioLevel*20);
+            let x = Math.cos(theta) * r + Math.cos(theta * 5) * p.distScatter;
+            let z = Math.sin(theta) * r + Math.sin(theta * 5) * p.distScatter;
+            let y = (Math.random() - 0.5) * 20 + wave;
+            let y1 = y * Math.cos(tiltX) - z * Math.sin(tiltX);
+            let z1 = y * Math.sin(tiltX) + z * Math.cos(tiltX);
+            y = y1; z = z1;
+            let x1 = x * Math.cos(tiltY) - z * Math.sin(tiltY);
+            let z11 = x * Math.sin(tiltY) + z * Math.cos(tiltY);
+            x = x1; z = z11;
+            const proj = project3D(x, y, z, cx, cy);
+            if (proj.scale > 0) {
+                const pulse = Math.sin(frame * p.pulseFreq) * 0.3 + 0.7;
+                const alpha = p.alpha * pulse * Math.min(1, 2.5 - p.angleOffset/5);
+                const audioAlpha = Math.min(1, alpha * (1 + audioLevel));
+                if (audioAlpha > 0.01) {
+                    ctx.globalAlpha = audioAlpha;
+                    ctx.beginPath();
+                    ctx.arc(proj.x, proj.y, p.size * proj.scale, 0, Math.PI*2);
+                    ctx.fill();
+                }
+            }
+        });
+        ctx.restore();
+    }
+}
+
+class Shockwave {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.radius = 10;
+        this.maxRadius = Math.max(width, height) * 0.8;
+        this.alpha = 1;
+        this.speed = 15;
+    }
+    update() {
+        this.radius += this.speed;
+        this.alpha -= 0.02;
+    }
+    draw(ctx) {
+        if(this.alpha <= 0) return;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
+        ctx.lineWidth = 20 * this.alpha;
+        ctx.strokeStyle = hexToRgba(this.color, this.alpha * 0.5);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+
+class LightRay {
+    constructor(color) {
+        this.angle = Math.random() * Math.PI * 2;
+        this.width = Math.random() * 0.1 + 0.05;
+        this.length = Math.random() * 300 + 200;
+        this.speed = (Math.random() - 0.5) * 0.02;
+        this.color = color;
+        this.alpha = 0;
+    }
+    update(isActive) {
+        this.angle += this.speed;
+        if (isActive) { if (this.alpha < 0.6) this.alpha += 0.02; } else { if (this.alpha > 0) this.alpha -= 0.02; }
+    }
+    draw(ctx, cx, cy) {
+        if (this.alpha <= 0.01) return;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(this.angle);
+        ctx.globalAlpha = this.alpha;
+        ctx.globalCompositeOperation = "screen";
+        const grad = ctx.createLinearGradient(0, 0, this.length, 0);
+        grad.addColorStop(0, hexToRgba(this.color, 0.8));
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(this.length, -this.width * 50);
+        ctx.lineTo(this.length, this.width * 50);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+class MoodBubble {
+    constructor(text, color, matches, type) {
+        this.text = text;
+        this.color = color;
+        this.matches = matches;
+        this.type = type;
+        const edge = Math.floor(Math.random() * 4);
+        const offset = 120;
+        if (edge === 0) { this.x = Math.random() * width; this.y = -offset; }
+        else if (edge === 1) { this.x = width + offset; this.y = Math.random() * height; }
+        else if (edge === 2) { this.x = Math.random() * width; this.y = height + offset; }
+        else { this.x = -offset; this.y = Math.random() * height; }
+        const targetX = width * 0.15 + Math.random() * (width * 0.7);
+        const targetY = height * 0.3 + Math.random() * (height * 0.4);
+        const angle = Math.atan2(targetY - this.y, targetX - this.x);
+        const startSpeed = 2.5 + Math.random() * 2.5;
+        this.speedX = Math.cos(angle) * startSpeed;
+        this.speedY = Math.sin(angle) * startSpeed;
+        this.baseSize = 45 + Math.random() * 20;
+        this.size = this.baseSize;
+        this.phase = Math.random() * Math.PI * 2;
+        this.opacity = 0;
+        this.targetOpacity = 1.0;
+        this.hasEntered = false;
+    }
+    checkCollision() {
+        for (let other of moodBubbles) {
+            if (other === this) continue;
+            const dx = this.x - other.x;
+            const dy = this.y - other.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const minDist = this.size + other.size + 15;
+            if (dist < minDist) {
+                const angle = Math.atan2(dy, dx);
+                const force = 0.5;
+                this.x += Math.cos(angle) * force;
+                this.y += Math.sin(angle) * force;
+                this.speedX += Math.cos(angle) * 0.01;
+                this.speedY += Math.sin(angle) * 0.01;
+            }
+        }
+    }
+    update() {
+        this.checkCollision();
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.opacity < this.targetOpacity) this.opacity += 0.015;
+        this.size = this.baseSize + Math.sin(frame * 0.03 + this.phase) * 3;
+        const dx = this.x - mouseX;
+        const dy = this.y - mouseY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 100) { this.x += dx * 0.02; this.y += dy * 0.02; }
+        if (!this.hasEntered) {
+            if (this.x > this.size && this.x < width - this.size &&
+                this.y > this.size && this.y < height - this.size) {
+                this.hasEntered = true;
+            }
+        }
+        if (this.hasEntered) {
+            this.speedX *= 0.95;
+            this.speedY *= 0.95;
+            const minSpeed = 0.3;
+            if (Math.abs(this.speedX) < minSpeed && Math.abs(this.speedY) < minSpeed) {
+                this.speedX += (Math.random()-0.5) * 0.05;
+                this.speedY += (Math.random()-0.5) * 0.05;
+            }
+            if (this.y < height * 0.28) { this.speedY += 0.02; }
+            const padding = this.size;
+            if (this.x < padding) { this.x = padding; this.speedX = Math.abs(this.speedX) + 0.2; }
+            if (this.x > width - padding) { this.x = width - padding; this.speedX = -Math.abs(this.speedX) - 0.2; }
+            if (this.y < padding) { this.y = padding; this.speedY = Math.abs(this.speedY) + 0.2; }
+            if (this.y > height - padding) { this.y = height - padding; this.speedY = -Math.abs(this.speedY) - 0.2; }
+        }
+    }
+    draw(ctx) {
+        ctx.globalAlpha = this.opacity;
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = this.color;
+        const grad = ctx.createRadialGradient(this.x - this.size * 0.3, this.y - this.size * 0.3, 0, this.x, this.y, this.size);
+        grad.addColorStop(0, "rgba(255, 255, 255, 0.95)");
+        grad.addColorStop(0.4, hexToRgba(this.color, 0.5));
+        grad.addColorStop(1, hexToRgba(this.color, 0.1));
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+        ctx.fillStyle = "#fff";
+        ctx.font = "300 16px 'PingFang SC', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.shadowColor = "rgba(0,0,0,0.8)";
+        ctx.shadowBlur = 4;
+        ctx.fillText(this.text, this.x, this.y);
+        ctx.globalAlpha = 1;
+    }
+}
+
+class Star {
+    constructor() { this.reset(); this.y = Math.random() * height; }
+    reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = Math.random() * 1.5 + 0.1;
+        this.baseAlpha = Math.random() * 0.5 + 0.1;
+        this.alpha = this.baseAlpha;
+        this.twinkleSpeed = Math.random() * 0.05 + 0.005;
+        this.phase = Math.random() * Math.PI * 2;
+    }
+    update() {
+        this.alpha = this.baseAlpha + Math.sin(frame * this.twinkleSpeed + this.phase) * 0.2;
+        if(this.alpha < 0) this.alpha = 0;
+        const parallaxX = (mouseX - width/2) * 0.001 * this.size;
+        this.x -= 0.05 + parallaxX;
+        if (this.x < 0) this.x = width;
+    }
+    draw(ctx) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+    }
+}
+
+class Nebula {
+    constructor(color, scale) {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.2;
+        this.vy = (Math.random() - 0.5) * 0.2;
+        this.size = (Math.min(width, height) * 0.4) * scale;
+        this.color = color;
+    }
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if(this.x < -this.size || this.x > width + this.size) this.vx *= -1;
+        if(this.y < -this.size || this.y > height + this.size) this.vy *= -1;
+        this.x += (mouseX - width/2) * 0.002;
+        this.y += (mouseY - height/2) * 0.002;
+    }
+    draw(ctx) {
+        const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+        grad.addColorStop(0, hexToRgba(this.color, 0.15));
+        grad.addColorStop(0.5, hexToRgba(this.color, 0.05));
+        grad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = grad;
+        ctx.globalCompositeOperation = "screen";
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+    }
+}
+
+// --- 2. 核心逻辑函数 (Core Logic) ---
+
+function initGalaxy() {
+    stars = []; 
+    for(let i=0; i<150; i++) stars.push(new Star());
+    
+    nebulas = []; 
+    nebulas.push(new Nebula("#4A148C", 1.0)); 
+    nebulas.push(new Nebula("#880E4F", 0.8)); 
+    nebulas.push(new Nebula("#FF6F00", 0.9)); 
+    nebulas.push(new Nebula("#7B1FA2", 0.6)); 
+    nebulas.push(new Nebula("#D81B60", 0.4)); 
+    
+    spaceParticles = []; 
+    for(let i=0; i<80; i++) spaceParticles.push(new SpaceParticle("#fff"));
+}
+
+function initRibbons() {
+    ribbons = [];
+    const ribbonColors = [ "#FFD700", "#F48FB1", "#AB47BC", "#FFCA28" ];
+    for(let i=0; i<4; i++) {
+        ribbons.push(new GalaxyStream(ribbonColors[i], i, 4));
+    }
+}
+
+function initIntro() {
+    moodBubbles = [];
+    const availableMoods = moodWords.filter(w => !purifiedMoods.includes(w.text));
+    const displayName = currentUserName || "Traveler";
+    
+    if (availableMoods.length === 0) {
+        purifiedMoods = [];
+        moodWords.forEach(w => { moodBubbles.push(new MoodBubble(w.text, w.color, w.matches, w.type)); });
+        titleText.innerText = "CYCLE RENEWED";
+        subtitleText.innerText = "";
+        typeText(subtitleText, `${displayName}, your inner universe is now clear.`, 30);
+    } else {
+        availableMoods.forEach(w => { moodBubbles.push(new MoodBubble(w.text, w.color, w.matches, w.type)); });
+        titleText.innerText = "COSMIC RITUAL";
+        subtitleText.innerText = "";
+        typeText(subtitleText, `${displayName}, what is weighing on your heart?`, 30);
+    }
+    
+    currentState = STATE.INTRO;
+    uiTitle.style.opacity = 1;
+    subtitleText.style.opacity = 1;
+    uiInstruction.innerText = "";
+    uiInstruction.style.opacity = 0;
+    document.body.classList.remove('guidance-mode');
+}
+
+function nextBreatheStep() {
+    breatheStep++;
+    const displayName = currentUserName || "Traveler";
+    
+    if (breatheStep === 1) {
+        titleText.innerText = "HELLO";
+        subtitleText.innerText = "";
+        typeText(subtitleText, `${displayName}, happy to see you. The world is noisy today, isn't it?`, 30);
+        uiInstruction.innerText = "TAP TO CONTINUE";
+        uiInstruction.style.opacity = 0.5;
+    } else if (breatheStep === 2) {
+        titleText.innerText = "GROUNDING";
+        subtitleText.innerText = "";
+        typeText(subtitleText, "Before we begin, let's find our inner rhythm.", 30);
+    } else if (breatheStep === 3) {
+        titleText.innerText = "BREATHE";
+        subtitleText.innerText = "";
+        typeText(subtitleText, "Empty your lungs... Exhale... Then slowly Inhale... Find peace.", 30);
+        uiInstruction.innerText = "TAP WHEN READY";
+    } else {
+        initIntro(); 
+    }
+    subtitleText.style.opacity = 1;
+}
+
+function initBreathe() {
+    currentState = STATE.BREATHE;
+    breatheStep = 0;
+    welcomeScreen.style.display = 'none';
+    uiTitle.style.opacity = 1;
+    nextBreatheStep();
+}
+
+function layoutCrystals() {
+  if (currentState === STATE.SELECT) {
+    const total = activeCrystals.length; 
+    const count = total > 0 ? total : 1; 
+    const spacing = Math.min(width / (count + 1), 150); 
+    const startX = (width - spacing * (count - 1)) / 2;
+    activeCrystals.forEach((c, i) => { 
+      c.targetX = startX + i * spacing; 
+      const offsetFromCenter = Math.abs(i - (total-1)/2); 
+      c.targetY = height * 0.45 + offsetFromCenter * 20; 
+      if (c.y === 0) c.y = height + 100; 
+    });
+  } else if (currentState === STATE.RITUAL || currentState === STATE.COMPLETE) {
+    activeCrystals.forEach((c, i) => { 
+      if (i === selectedCrystalIndex) { 
+          c.targetX = width / 2; 
+          c.targetY = height / 2; 
+      } else { 
+          c.targetX = c.x + (c.x - width/2) * 5; 
+          c.targetY = c.y + (c.y - height/2) * 5; 
+      } 
+    });
+  }
+}
+
+function selectMood(bubble) { 
+  initialMood = bubble.text; 
+  if(bubble.text !== "OTHERS" && currentState === STATE.INTRO) { createExplosion(bubble.x, bubble.y, bubble.color, 3); } else if (currentState !== STATE.INTRO) { createExplosion(width/2, height/2, bubble.color, 3); }
+  moodBubbles = []; const displayName = currentUserName || "Traveler"; currentMoodType = bubble.type; 
+  if (bubble.matches) { activeCrystals = crystals.filter(c => bubble.matches.includes(c.name)); } else { activeCrystals = crystals.slice(0, 3); } 
+  currentState = STATE.GUIDANCE; document.body.classList.add('guidance-mode'); 
+  subtitleText.innerText = ""; 
+  if (bubble.synergy) { titleText.innerText = "CUSTOM BLEND"; typeText(subtitleText, `${displayName}, for [${initialMood}], the universe has synthesized the [${bubble.synergy.name}] energy...`, 30); } 
+  else if (currentMoodType === 'positive') { titleText.innerText = "ALIGNING FREQUENCY"; typeText(subtitleText, `${displayName}, radiating light... gathering energies to sustain your [${initialMood}]...`, 30); } 
+  else { titleText.innerText = "TRANSMUTING ENERGY"; typeText(subtitleText, `${displayName}, I sense your [${initialMood}]... allowing the universe to absorb this weight...`, 30); }
+  subtitleText.style.opacity = 1; uiInstruction.style.opacity = 0;
+  setTimeout(() => { document.body.classList.remove('guidance-mode'); currentState = STATE.SELECT; harmonizeBtn.style.display = 'block'; harmonizeBtn.style.opacity = '0'; setTimeout(() => harmonizeBtn.style.opacity = '1', 500); if (bubble.synergy) { titleText.innerText = "CUSTOM BLEND"; subtitleText.innerText = bubble.synergy.desc; } else { titleText.innerText = "NATURE CRYSTALS"; subtitleText.innerText = "The universe offers these crystals for you"; } uiInstruction.innerText = "SELECT ONE TO BOND"; uiInstruction.style.opacity = 0.6; layoutCrystals(); activeCrystals.forEach((c, i) => { c.x = c.targetX; c.y = height + 100 + (i * 10); }); createExplosion(width/2, height, "#ffffff", 2); }, 2500); 
+}
+
+function startRitual(index) { 
+    if (!checkDailyUsage()) { window.openVipModal(); return; }
+    selectedCrystalIndex = index; isHarmonizingAll = false; currentState = STATE.RITUAL; ritualProgress = 0; energyParticles = []; shockwaves = []; layoutCrystals(); uiTitle.style.opacity = 0; uiInstruction.innerText = "PRESS & HOLD"; uiInstruction.style.opacity = 0.7; uiInstruction.style.bottom = "12%"; uiInstruction.style.letterSpacing = "4px"; harmonizeBtn.style.display = 'none'; 
+}
+
+function updateChakraStats(crystalName) {
+    const crystal = crystals.find(c => c.name === crystalName); if (!crystal) return;
+    const targetChakra = crystal.chakra; if (chakraLevels.hasOwnProperty(targetChakra)) { chakraLevels[targetChakra] = Math.min(100, chakraLevels[targetChakra] + 25); }
+}
+
+function renderChakraBody() {
+    const container = document.getElementById('chakra-body');
+    const existingPoints = container.querySelectorAll('.chakra-point, .chakra-ring, .chakra-label'); existingPoints.forEach(el => el.remove());
+    Object.keys(CHAKRA_CONFIG).forEach(key => {
+        const config = CHAKRA_CONFIG[key]; const level = chakraLevels[key];
+        const point = document.createElement('div'); point.className = 'chakra-point'; point.style.top = config.top; point.style.backgroundColor = config.color; point.style.boxShadow = `0 0 ${5 + level/5}px ${config.color}`; container.appendChild(point);
+        if (level > 0) {
+            const ring = document.createElement('div'); ring.className = 'chakra-ring'; ring.style.top = config.top; ring.style.borderColor = config.color; ring.style.width = `${20 + level/2}px`; ring.style.height = `${20 + level/2}px`; ring.style.opacity = level / 100; ring.style.animationDuration = `${15 - level/10}s`; container.appendChild(ring);
+            const label = document.createElement('div'); label.className = 'chakra-label'; label.style.top = config.top; label.innerHTML = `${key}: <span style="color:${config.color}">${level}%</span>`; label.style.opacity = 1; container.appendChild(label);
+        }
+    });
+}
+
+function completeRitual() { 
+    currentState = STATE.COMPLETE; isCharging = false; uiInstruction.style.opacity = 0; shakeIntensity = 0; 
+    if (initialMood && !purifiedMoods.includes(initialMood)) { purifiedMoods.push(initialMood); } 
+    incrementDailyUsage();
+    let logName = ""; let glowColor = "#FFFFFF";
+    if (isHarmonizingAll) {
+        logName = "Synergy Blend"; glowColor = "#FFD700"; 
+        const keys = Object.keys(chakraLevels); for(let i=0; i<3; i++) { const randomKey = keys[Math.floor(Math.random() * keys.length)]; chakraLevels[randomKey] = Math.min(100, chakraLevels[randomKey] + 20); }
+    } else {
+        const c = activeCrystals[selectedCrystalIndex]; logName = c.name; glowColor = c.glow; updateChakraStats(c.name);
+    }
+    saveLog(initialMood, logName); createExplosion(width/2, height/2, glowColor, 8); createExplosion(width/2, height/2, "#fff", 5); ctx.fillStyle = "white"; ctx.fillRect(-10,-10,width+20,height+20); setTimeout(() => { showJournalCard(); }, 1000); 
+}
+
+function showJournalCard() { 
+    const now = new Date(); document.getElementById('date-text').innerText = `${now.getFullYear()}.${now.getMonth()+1}.${now.getDate()} | STARLOG`; 
+    if (isHarmonizingAll) { document.getElementById('mood-shift-text').innerText = `HARMONIZED: ${initialMood} ➔ UNIVERSAL FLOW`; document.getElementById('card-quote').innerText = "All energies align within you."; } 
+    else { const c = activeCrystals[selectedCrystalIndex]; if (currentMoodType === 'positive') { document.getElementById('mood-shift-text').innerText = `AMPLIFIED: ${initialMood} ➔ ${c.emotion}`; } else { document.getElementById('mood-shift-text').innerText = `CLEANSED: ${initialMood} ➔ ${c.emotion}`; } document.getElementById('card-quote').innerText = c.quote; }
+    renderChakraBody(); renderLogs(); journalCard.style.display = 'block'; 
+}
+
+function handleStart(x, y) { 
+    mouseX = x; mouseY = y; 
+    if (currentState === STATE.WELCOME) return;
+    if (currentState === STATE.BREATHE) { nextBreatheStep(); return; }
+    if (currentState === STATE.INTRO) { 
+        for (let i=0; i<moodBubbles.length; i++) { 
+            let b = moodBubbles[i]; let dx = x - b.x; let dy = y - b.y; 
+            if (Math.sqrt(dx*dx + dy*dy) < b.size + 20) { 
+                if (!checkDailyUsage()) { window.openVipModal(); return; }
+                if(b.text === "OTHERS") { customModal.style.display = 'flex'; customInput.focus(); } else { selectMood(b); }
+                break; 
+            } 
+        } 
+    } else if (currentState === STATE.SELECT) { 
+        activeCrystals.forEach((c, i) => { const dx = x - c.x; const dy = y - c.y; if (Math.abs(dx) < 60 && dy > -60 && dy < 180) startRitual(i); }); 
+    } else if (currentState === STATE.RITUAL) { 
+        isCharging = true; uiInstruction.innerText = "HOLD TO RESONATE"; uiInstruction.style.transform = "scale(1.1)"; uiInstruction.style.opacity = 1; 
+    } 
+}
+function handleMove(x, y) { mouseX = x; mouseY = y; }
+function handleEnd() { isCharging = false; if (currentState === STATE.RITUAL) { uiInstruction.innerText = "PRESS & HOLD"; uiInstruction.style.transform = "scale(1)"; uiInstruction.style.opacity = 0.7; } }
+
+// --- 4. 辅助函数 (Utils) ---
+
+function typeText(element, text, speed = 50) {
+    if (typingTimeout) clearTimeout(typingTimeout);
+    element.innerHTML = ""; element.classList.add('gradient-text', 'typing-cursor'); element.style.opacity = 1;
+    let i = 0;
+    function type() { if (i < text.length) { element.innerHTML += text.charAt(i); i++; typingTimeout = setTimeout(type, speed); } else { setTimeout(() => element.classList.remove('typing-cursor'), 1000); } }
+    type();
+}
+
+function checkDailyUsage() {
+    const today = new Date().toLocaleDateString();
+    const lastDate = localStorage.getItem('crystal_last_date');
+    const vip = localStorage.getItem('crystal_is_vip') === 'true';
+    if (lastDate !== today) { localStorage.setItem('crystal_last_date', today); localStorage.setItem('crystal_daily_count', '0'); dailyUsage = 0; } 
+    else { dailyUsage = parseInt(localStorage.getItem('crystal_daily_count') || '0'); }
+    isVip = vip; updateStatusUI(); return isVip || dailyUsage < DAILY_LIMIT;
+}
+
+function updateStatusUI() {
+    if (isVip) { vipStatusText.innerText = "VIP UNLIMITED"; vipStatusText.style.color = "#FFD700"; } 
+    else { const remaining = Math.max(0, DAILY_LIMIT - dailyUsage); vipStatusText.innerText = `FREE: ${remaining}/${DAILY_LIMIT}`; vipStatusText.style.color = remaining > 0 ? "white" : "#ff5252"; }
+}
+
+function incrementDailyUsage() { if (isVip) return; dailyUsage++; localStorage.setItem('crystal_daily_count', dailyUsage.toString()); updateStatusUI(); }
+
+function saveLog(mood, crystalName) {
+    const logs = JSON.parse(localStorage.getItem('crystal_logs') || '[]'); const now = new Date();
+    logs.unshift({ time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), date: now.toLocaleDateString(), mood: mood, crystal: crystalName });
+    if (logs.length > 50) logs.pop(); localStorage.setItem('crystal_logs', JSON.stringify(logs));
+}
+
+function renderLogs() {
+    const list = document.getElementById('log-list'); const logs = JSON.parse(localStorage.getItem('crystal_logs') || '[]'); const today = new Date().toLocaleDateString(); const todayLogs = logs.filter(l => l.date === today);
+    if (todayLogs.length === 0) { list.innerHTML = '<div style="text-align:center; color:rgba(255,255,255,0.3); font-size:12px; padding:10px;">No records yet today</div>'; return; }
+    let html = ''; todayLogs.forEach(l => { html += `<div class="log-entry"><span class="log-time">${l.time}</span><span>${l.mood} <span style="color:rgba(255,255,255,0.4)">➔</span> <span class="log-crystal">${l.crystal}</span></span></div>`; });
+    list.innerHTML = html;
+}
+
+function initAudio() { if (isAudioInited) { if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } return; } try { const AudioContext = window.AudioContext || window.webkitAudioContext; audioCtx = new AudioContext(); try { const source = audioCtx.createMediaElementSource(bgm); analyser = audioCtx.createAnalyser(); analyser.fftSize = 256; source.connect(analyser); analyser.connect(audioCtx.destination); dataArray = new Uint8Array(analyser.frequencyBinCount); isAudioInited = true; } catch (e) { console.log("Audio analysis disabled."); } } catch(e) { console.error("Web Audio API not supported", e); } }
+
+function updateAudioLevel() { if (!isAudioInited || !analyser) { audioLevel = 0; return; } analyser.getByteFrequencyData(dataArray); let sum = 0; for(let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; } audioLevel = (sum / dataArray.length) / 255; }
+
+function project3D(x, y, z, cx, cy) { const scale = PERSPECTIVE / (PERSPECTIVE + z); const px = cx + x * scale; const py = cy + y * scale; return { x: px, y: py, scale: scale }; }
+function drawPillarPath(ctx, size) { ctx.beginPath(); ctx.moveTo(0, -size); ctx.lineTo(size * 0.5, -size * 0.6); ctx.lineTo(size * 0.5, size * 0.8); ctx.lineTo(0, size); ctx.lineTo(-size * 0.5, size * 0.8); ctx.lineTo(-size * 0.5, -size * 0.6); ctx.closePath(); }
+function createExplosion(x, y, color, scale=1) { for(let i=0; i<25 * scale; i++) particles.push(new Particle(x, y, color, scale)); }
+function hexToRgba(hex, alpha) { const r = parseInt(hex.slice(1, 3), 16); const g = parseInt(hex.slice(3, 5), 16); const b = parseInt(hex.slice(5, 7), 16); return `rgba(${r}, ${g}, ${b}, ${alpha})`; }
+
+// --- 5. 渲染循环 (Loop) ---
+
+function resize() { 
+    width = window.innerWidth; 
+    height = window.innerHeight; 
+    canvas.width = width; 
+    canvas.height = height; 
+    initGalaxy(); 
+    initRibbons(); 
+    layoutCrystals(); // 确保此时 layoutCrystals 已定义
+}
+
+function updateAndDraw() {
+  frame++;
+  updateAudioLevel();
+  if (currentState === STATE.RITUAL && isCharging) {
+      ritualProgress += 0.4; 
+      if (ritualProgress > 100) ritualProgress = 100;
+      shakeIntensity = (ritualProgress > 40) ? (ritualProgress - 40) * 0.4 : 0;
+      if (isHarmonizingAll) {
+          if (frame % 2 === 0) { activeCrystals.forEach(c => { energyParticles.push(new EnergyParticle(width/2, height/2, c.glow)); }); }
+      } else {
+          const c = activeCrystals[selectedCrystalIndex];
+          if (frame % 2 === 0) { energyParticles.push(new EnergyParticle(width/2, height/2, c.glow)); }
+      }
+      const glowColor = isHarmonizingAll ? "#FFFFFF" : activeCrystals[selectedCrystalIndex].glow;
+      if (ritualProgress > 50 && frame % 40 === 0) { shockwaves.push(new Shockwave(width/2, height/2, glowColor)); }
+      spaceParticles.forEach(p => p.update(10 + ritualProgress/2));
+      if (ritualProgress >= 100) completeRitual();
+  } else {
+      shakeIntensity *= 0.8; spaceParticles.forEach(p => p.update(1));
+      if (currentState === STATE.RITUAL && ritualProgress > 0) { ritualProgress -= 0.8; if(ritualProgress < 0) ritualProgress = 0; }
+  }
+  let shakeX = 0, shakeY = 0;
+  if (shakeIntensity > 0.1) { shakeX = (Math.random() - 0.5) * shakeIntensity; shakeY = (Math.random() - 0.5) * shakeIntensity; }
+
+  ctx.save(); ctx.translate(shakeX, shakeY);
+  ctx.fillStyle = "rgba(5, 7, 10, 0.8)"; ctx.fillRect(-20, -20, width+40, height+40);
+  nebulas.forEach(n => { n.update(); n.draw(ctx); }); stars.forEach(s => { s.update(); s.draw(ctx); }); spaceParticles.forEach(p => p.draw(ctx, width/2, height/2));
+  for(let i=shockwaves.length-1; i>=0; i--) { shockwaves[i].update(); shockwaves[i].draw(ctx); if(shockwaves[i].alpha <= 0) shockwaves.splice(i, 1); }
+  for (let i = energyParticles.length - 1; i >= 0; i--) { let reached = energyParticles[i].update(ritualProgress); energyParticles[i].draw(ctx); if (reached) energyParticles.splice(i, 1); }
+
+  if (currentState === STATE.RITUAL) {
+      const breath = 100 + Math.sin(frame * (0.05 + ritualProgress/200)) * 30; 
+      const darken = ritualProgress / 100;
+      const grad = ctx.createRadialGradient(width/2, height/2, breath, width/2, height/2, width);
+      grad.addColorStop(0, "rgba(0,0,0,0)"); grad.addColorStop(1, `rgba(0,0,0,${darken * 0.95})`);
+      ctx.fillStyle = grad; ctx.fillRect(0, 0, width, height);
+      const centerColor = isHarmonizingAll ? "#FFD700" : activeCrystals[selectedCrystalIndex].glow;
+      draw3DRitualCircle(ctx, width/2, height/2, 120, ritualProgress, centerColor);
+      if (!isHarmonizingAll) {
+          const c = activeCrystals[selectedCrystalIndex];
+          const currentHz = 50 + (c.targetHz - 50) * (ritualProgress/100);
+          drawHzCounter(ctx, width/2, height/2, currentHz);
+      }
+  }
+
+  if (currentState === STATE.BREATHE) { drawBreathingAura(ctx, width/2, height/2); }
+  if (currentState === STATE.INTRO) { moodBubbles.forEach(b => { b.update(); b.draw(ctx); }); }
+
+  let ribbonCenter = {x: width/2, y: height/2};
+  if (currentState === STATE.SELECT) { ribbonCenter.y = height * 0.4; }
+  ribbons.forEach(r => { r.update(ribbonCenter.x, ribbonCenter.y, ritualProgress); r.draw(ctx, ribbonCenter.x, ribbonCenter.y, ritualProgress); });
+
+  if (currentState !== STATE.WELCOME && currentState !== STATE.INTRO && currentState !== STATE.GUIDANCE && currentState !== STATE.BREATHE) {
+    activeCrystals.forEach((c, i) => {
+      if (isHarmonizingAll && currentState === STATE.RITUAL) {
+           const angle = (i / activeCrystals.length) * Math.PI * 2 + frame * 0.01; 
+           const radius = Math.min(width, height) * 0.25;
+           c.targetX = width/2 + Math.cos(angle) * radius;
+           c.targetY = height/2 + Math.sin(angle) * radius;
+      }
+      c.x += (c.targetX - c.x) * 0.08; c.y += (c.targetY - c.y) * 0.08;
+      let alpha = 1; if (currentState !== STATE.SELECT && !isHarmonizingAll && i !== selectedCrystalIndex) alpha = 0.0; 
+      let scale = 1; let offsetX = 0; let offsetY = 0;
+      if (currentState === STATE.RITUAL && (isHarmonizingAll || i === selectedCrystalIndex)) {
+           scale = 1 + (ritualProgress / 100); const jitter = ritualProgress / 30; offsetX = (Math.random()-0.5) * jitter; offsetY = (Math.random()-0.5) * jitter;
+      }
+      const size = 45 * scale; const floatY = Math.sin(frame * 0.02 + i) * 8; const drawY = c.y + floatY + offsetY; const drawX = c.x + offsetX;
+
+      if (alpha > 0.05) {
+        ctx.globalAlpha = alpha;
+        const drawCrystalContent = (context) => {
+            const img = crystalImages[c.name];
+            const boost = 1 + audioLevel * 2;
+            const glowColor = (currentState === STATE.RITUAL) ? (isHarmonizingAll ? "#FFFFFF" : c.glow) : c.color;
+            const glowSize = (currentState === STATE.RITUAL && (isHarmonizingAll || i === selectedCrystalIndex)) ? size * (3 + ritualProgress/15) * boost : size * 2.5;
+            const glowGrad = context.createRadialGradient(0, 0, size*0.3, 0, 0, glowSize);
+            glowGrad.addColorStop(0, hexToRgba(glowColor, 0.6)); glowGrad.addColorStop(1, "rgba(0,0,0,0)");
+            context.globalCompositeOperation = "screen"; context.fillStyle = glowGrad; context.beginPath(); context.arc(0, 0, glowSize, 0, Math.PI*2); context.fill(); context.globalCompositeOperation = "source-over";
+
+            if (img && img.complete && img.naturalWidth !== 0) {
+                context.save(); drawPillarPath(context, size); context.clip(); context.drawImage(img, -size*0.8, -size*1.1, size * 1.6, size * 2.2);
+                const overlayGrad = context.createLinearGradient(-size, -size, size, size); overlayGrad.addColorStop(0, "rgba(255,255,255,0.3)"); overlayGrad.addColorStop(0.5, "rgba(255,255,255,0)"); overlayGrad.addColorStop(1, "rgba(0,0,0,0.4)");
+                context.fillStyle = overlayGrad; context.fill(); context.restore();
+            } else { context.fillStyle = c.color; drawPillarPath(context, size); context.fill(); }
+            context.strokeStyle = "rgba(255,255,255,0.9)"; context.lineWidth = 1.5; drawPillarPath(context, size); context.stroke();
+            if (ritualProgress > 50) { context.globalCompositeOperation = "lighter"; context.fillStyle = `rgba(255,255,255,${(ritualProgress-50)/100})`; drawPillarPath(context, size); context.fill(); context.globalCompositeOperation = "source-over"; }
+        };
+
+        if (currentState === STATE.RITUAL && ritualProgress > 40) { drawRGBShift(ctx, drawCrystalContent, (Math.random()-0.5)*ritualProgress/10, (Math.random()-0.5)*ritualProgress/10, drawX, drawY); } else { ctx.translate(drawX, drawY); drawCrystalContent(ctx); ctx.translate(-drawX, -drawY); }
+
+        if (currentState === STATE.SELECT) {
+          ctx.fillStyle = "#fff"; ctx.font = "300 14px sans-serif"; ctx.textAlign = "center"; ctx.shadowColor = "black"; ctx.shadowBlur = 4; ctx.fillText(c.name, c.x, drawY + size + 25);
+          ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.font = "12px sans-serif"; ctx.fillText(c.emotion, c.x, drawY + size + 45); ctx.shadowBlur = 0;
+          if (c.knowledge && !isHarmonizingAll) drawEnergyCard(ctx, c, c.x, drawY, size);
+        } else if (currentState === STATE.RITUAL && !isHarmonizingAll) {
+            ctx.fillStyle = "rgba(255,255,255,0.8)"; ctx.font = "300 16px sans-serif"; ctx.textAlign = "center"; ctx.shadowColor = "black"; ctx.shadowBlur = 4; ctx.fillText(c.name, c.x, drawY + size + 35);
+        }
+        ctx.globalAlpha = 1;
+      }
+    });
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) { let p = particles[i]; p.update(); p.draw(ctx); if (p.life <= 0) particles.splice(i, 1); }
+  ctx.restore(); requestAnimationFrame(updateAndDraw);
+}
+
+// --- 6. 挂载与启动 ---
+window.submitCustomMood = function() { const customText = customInput.value.trim(); if (!checkDailyUsage()) { window.openVipModal(); return; } if(customText) { window.closeModal('custom-mood-modal'); const randomSynergy = energySynergies[Math.floor(Math.random() * energySynergies.length)]; const customBubble = { text: customText, color: "#FFFFFF", matches: randomSynergy.crystals, type: "negative", synergy: randomSynergy }; selectMood(customBubble); } };
+window.startHarmonizeAll = function() { if (!checkDailyUsage()) { window.openVipModal(); return; } isHarmonizingAll = true; selectedCrystalIndex = -2; currentState = STATE.RITUAL; ritualProgress = 0; energyParticles = []; shockwaves = []; uiTitle.style.opacity = 0; uiInstruction.innerText = "PRESS & HOLD CENTER"; uiInstruction.style.opacity = 0.7; uiInstruction.style.bottom = "12%"; harmonizeBtn.style.display = 'none'; const radius = Math.min(width, height) * 0.25; activeCrystals.forEach((c, i) => { const angle = (i / activeCrystals.length) * Math.PI * 2 - Math.PI/2; c.targetX = width/2 + Math.cos(angle) * radius; c.targetY = height/2 + Math.sin(angle) * radius; }); };
+window.resetGame = function() { currentState = STATE.INTRO; ritualProgress = 0; selectedCrystalIndex = -1; isHarmonizingAll = false; journalCard.style.display = 'none'; initIntro(); };
+window.enterGame = function() { welcomeScreen.style.opacity = 0; welcomeScreen.style.pointerEvents = 'none'; setTimeout(() => { welcomeScreen.style.display = 'none'; initBreathe(); }, 1200); };
+window.exitToHome = function() { window.open("https://www.crystalyear.com", "_blank"); };
+window.handleStartGame = function() { const nameInput = document.getElementById('username'); const name = nameInput.value.trim(); if(!name && !localStorage.getItem('crystal_username')) { nameInput.style.borderBottomColor = "#ff5252"; setTimeout(() => nameInput.style.borderBottomColor = "rgba(255,255,255,0.3)", 500); return; } if(name) { localStorage.setItem('crystal_username', name); currentUserName = name; } else { currentUserName = localStorage.getItem('crystal_username'); } if (!checkDailyUsage()) { window.openVipModal(); return; } window.enterGame(); };
+window.openVipModal = function() { if (isVip) { document.getElementById('vip-modal-title').innerText = "VIP Status Active"; document.getElementById('vip-modal-desc').innerText = "You have unlimited access to cosmic energy resonance."; } else { document.getElementById('vip-modal-title').innerText = "Unlock Limitless Energy"; document.getElementById('vip-modal-desc').innerText = `You have used ${dailyUsage}/${DAILY_LIMIT} free rituals today.\nJoin VIP for unlimited access and exclusive crystals.`; } vipModal.style.display = 'flex'; };
+window.unlockVip = function() { isVip = true; localStorage.setItem('crystal_is_vip', 'true'); updateStatusUI(); window.closeModal('vip-modal'); if (currentState === STATE.INTRO) { initIntro(); } };
+window.closeModal = function(id) { document.getElementById(id).style.display = 'none'; };
+window.toggleMusic = function() { initAudio(); if (bgm.paused) { bgm.play().then(() => { iconMute.style.display = "none"; iconPlay.style.display = "block"; }).catch(err => { console.log("Audio play failed:", err); }); if (audioCtx && audioCtx.state === 'suspended') { audioCtx.resume(); } } else { bgm.pause(); iconMute.style.display = "block"; iconPlay.style.display = "none"; audioLevel = 0; } };
+
+window.addEventListener('resize', resize); 
+canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY)); 
+canvas.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY)); 
+canvas.addEventListener('mouseup', handleEnd); 
+canvas.addEventListener('mouseleave', handleEnd); 
+canvas.addEventListener('touchstart', e => { e.preventDefault(); handleStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false}); 
+canvas.addEventListener('touchmove', e => { e.preventDefault(); handleMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false}); 
+canvas.addEventListener('touchend', handleEnd);
+
+resize(); 
+initGalaxy(); 
+updateAndDraw();
+
+</script>
+</body>
+</html>
